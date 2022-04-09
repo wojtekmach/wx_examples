@@ -29,6 +29,10 @@ defmodule Loop do
         Logger.debug(inspect(event))
         :ok
 
+      {:wx, _, _, _, {:wxClose, :close_window}} = event ->
+        Logger.debug(inspect(event))
+        :ok
+
       {:wx, _, _webview, _, {:wxWebView, :webview_navigating, _, _, _, 'http://wx/quit'}} = event ->
         Logger.debug(inspect(event))
         :ok
