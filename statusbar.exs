@@ -4,6 +4,7 @@ defmodule Server do
 
   @wxID_NEW 5002
   @wxID_EXIT 5006
+  @wxBITMAP_TYPE_PNG 15
 
   def start_link do
     GenServer.start_link(__MODULE__, nil)
@@ -26,8 +27,7 @@ defmodule Server do
       )
 
     path = Application.app_dir(:wx, "priv/erlang-logo32.png")
-    wxBITMAP_TYPE_PNG = 15
-    icon = :wxIcon.new(path, type: wxBITMAP_TYPE_PNG)
+    icon = :wxIcon.new(path, type: @wxBITMAP_TYPE_PNG)
     :wxTaskBarIcon.setIcon(taskbar, icon)
 
     {:ok, %{}}
