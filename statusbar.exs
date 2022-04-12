@@ -26,8 +26,8 @@ defmodule Server do
         end
       )
 
-    path = Application.app_dir(:wx, "priv/erlang-logo32.png")
-    icon = :wxIcon.new(path, type: @wxBITMAP_TYPE_PNG)
+    logo_path = Application.app_dir(:wx, "examples/demo/erlang.png")
+    icon = :wxIcon.new(logo_path, type: @wxBITMAP_TYPE_PNG)
     :wxTaskBarIcon.setIcon(taskbar, icon)
 
     {:ok, %{}}
