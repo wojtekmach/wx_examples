@@ -1,20 +1,57 @@
-wx = :wx.new()
-wxID_EXIT = 5006
+defmodule Server do
+  use GenServer
+  require Logger
 
-menu = :wxMenu.new()
-:wxMenu.append(menu, wxID_EXIT, "Quit")
-:wxMenu.connect(menu, :command_menu_selected)
+  @wxID_NEW 5002
+  @wxID_EXIT 5006
 
-statusbar =
-  :wxTaskBarIcon.new(
-    iconType: 1,
-    createPopupMenu: fn -> menu end
-  )
+  def start_link do
+    GenServer.start_link(__MODULE__, nil)
+  end
 
-icon = :wxArtProvider.getIcon('wxART_PLUS')
-:wxTaskBarIcon.setIcon(statusbar, icon, tooltip: "Demo")
+  @impl true
+  def init(_) do
+    :wx.new()
+    pid = self()
 
-receive do
-  event ->
-    IO.inspect(event)
+    taskbar =
+      :wxTaskBarIcon.new(
+        createPopupMenu: fn ->
+          menu = :wxMenu.new()
+          :wxMenu.append(menu, @wxID_NEW, "Debug\tCtrl-N")
+          :wxMenu.append(menu, @wxID_EXIT, "Quit\tCtrl-Q")
+          send(pid, {:taskbar_menu_created, menu})
+          menu
+        end
+      )
+
+    path = Application.app_dir(:wx, "priv/erlang-logo32.png")
+    wxBITMAP_TYPE_PNG = 15
+    icon = :wxIcon.new(path, type: wxBITMAP_TYPE_PNG)
+    :wxTaskBarIcon.setIcon(taskbar, icon)
+
+    {:ok, %{}}
+  end
+
+  @impl true
+  def handle_info({:taskbar_menu_created, menu}, state) do
+    :ok = :wxMenu.connect(menu, :command_menu_selected)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:wx, @wxID_EXIT, _, _, _} = event, state) do
+    Logger.debug(inspect(event))
+    System.stop()
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:wx, @wxID_NEW, _, _, _} = event, state) do
+    Logger.debug(inspect(event))
+    {:noreply, state}
+  end
 end
+
+{:ok, _} = Server.start_link()
+Process.sleep(:infinity)
