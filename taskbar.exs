@@ -19,9 +19,34 @@ defmodule Server do
       :wxTaskBarIcon.new(
         createPopupMenu: fn ->
           menu = :wxMenu.new()
-          :wxMenu.append(menu, @wxID_NEW, "Debug\tCtrl-N")
-          :wxMenu.append(menu, @wxID_EXIT, "Quit\tCtrl-Q")
-          send(pid, {:taskbar_menu_created, menu})
+          :wxMenu.append(menu, @wxID_NEW, "Debug")
+          :wxMenu.append(menu, @wxID_EXIT, "Quit")
+
+          # For some reason, on macOS the menu event must be handled in another process
+          # but on Windows it must be either the same process OR we use the callback.
+          case :os.type() do
+            {:unix, :darwin} ->
+              env = :wx.get_env()
+
+              Task.start_link(fn ->
+                :wx.set_env(env)
+                :wxMenu.connect(menu, :command_menu_selected)
+
+                receive do
+                  message ->
+                    send(pid, message)
+                end
+              end)
+
+            {:win32, _} ->
+              :ok =
+                :wxMenu.connect(menu, :command_menu_selected,
+                  callback: fn wx, _ ->
+                    send(pid, wx)
+                  end
+                )
+          end
+
           menu
         end
       )
@@ -31,12 +56,6 @@ defmodule Server do
     :wxTaskBarIcon.setIcon(taskbar, icon)
 
     {:ok, %{}}
-  end
-
-  @impl true
-  def handle_info({:taskbar_menu_created, menu}, state) do
-    :ok = :wxMenu.connect(menu, :command_menu_selected)
-    {:noreply, state}
   end
 
   @impl true
